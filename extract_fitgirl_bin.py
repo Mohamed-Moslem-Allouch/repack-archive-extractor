@@ -50,11 +50,69 @@ def draw_bar(percent, width=28):
     filled = int(width * percent / 100)
     return "=" * filled + "-" * (width - filled)
 
+def optimize_cls_ini(content, output_dir):
+    """
+    Max out all decompression engine parameters:
+    - Transfer buffers: Bufsize, transfer_ReadBufSize, transfer_WriteBufSize
+    - Multi-threading: MaxThreadsUsage=100%, MaxMemoryUsage=100%
+    - Long distance match finder: ldmfMaxMemoryUsage=100%, ldmfDeleteTmp=1
+    """
+    content = content.replace("{app}", output_dir)
+    lines = content.splitlines()
+    out = []
+    current_sec = ""
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            current_sec = stripped[1:-1].strip().lower()
+            out.append(line)
+            continue
+
+        if "=" in line and not stripped.startswith(";") and not stripped.startswith("#"):
+            k, v = line.split("=", 1)
+            k_clean = k.strip()
+            k_lower = k_clean.lower()
+
+            if k_lower == "maxthreadsusage":
+                out.append(f"{k_clean}=100%")
+            elif k_lower == "maxmemoryusage":
+                out.append(f"{k_clean}=100%")
+            elif k_lower == "memory":
+                out.append(f"{k_clean}=100%")
+            elif k_lower == "ldmfmaxmemoryusage":
+                out.append(f"{k_clean}=100%")
+            elif k_lower == "ldmfdeletetmp":
+                out.append(f"{k_clean}=1")
+            elif k_lower == "transfer_readbufsize":
+                out.append(f"{k_clean}=8m")
+            elif k_lower == "transfer_writebufsize":
+                out.append(f"{k_clean}=8m")
+            elif k_lower == "bufsize":
+                if "srep" in current_sec:
+                    out.append(f"{k_clean}=64m")
+                else:
+                    out.append(f"{k_clean}=16m")
+            else:
+                out.append(line)
+        else:
+            out.append(line)
+
+    return "\n".join(out)
+
+def optimize_arc_ini(content, output_dir, cores):
+    """
+    Max out FreeArc and external compressor thread limits.
+    """
+    content = content.replace("{app}", output_dir)
+    content = re.sub(r"-t\d+p", "-t100p", content)
+    content = re.sub(r":t\d+p", ":t100p", content)
+    content = re.sub(r"-t[1-9]\b", f"-t{cores}", content)
+    if "[FreeArc]" not in content:
+        content = f"[FreeArc]\nthreads = {cores}\n\n" + content
+    return content
+
 def optimize_configs(toolchain_dir, output_dir, cores):
-    """
-    Tuning arc.ini and CLS.ini to utilize 100% of all CPU cores/threads,
-    remove RAM allocation caps, and enlarge I/O pipe buffers.
-    """
     # Optimize CLS.ini / cls.ini
     for ininame in ["cls.ini", "CLS.ini"]:
         p = os.path.join(toolchain_dir, ininame)
@@ -62,17 +120,9 @@ def optimize_configs(toolchain_dir, output_dir, cores):
             try:
                 with open(p, "r", encoding="latin1") as f:
                     c = f.read()
-                c = c.replace("{app}", output_dir)
-                # Maximize thread usage across all engines
-                c = re.sub(r"MaxThreadsUsage=\d+%", "MaxThreadsUsage=100%", c)
-                c = re.sub(r"MaxMemoryUsage=\d+%", "MaxMemoryUsage=100%", c)
-                c = re.sub(r"Memory=\d+.*", "Memory=100%", c)
-                c = re.sub(r"ldmfMaxMemoryUsage=\d+.*", "ldmfMaxMemoryUsage=100%", c)
-                # Optimize pipe buffer sizes for faster throughput
-                c = re.sub(r"transfer_ReadBufSize=\d+\w*", "transfer_ReadBufSize=4m", c)
-                c = re.sub(r"transfer_WriteBufSize=\d+\w*", "transfer_WriteBufSize=4m", c)
+                optimized = optimize_cls_ini(c, output_dir)
                 with open(p, "w", encoding="latin1") as f:
-                    f.write(c)
+                    f.write(optimized)
             except Exception:
                 pass
 
@@ -83,15 +133,9 @@ def optimize_configs(toolchain_dir, output_dir, cores):
             try:
                 with open(p, "r", encoding="latin1") as f:
                     a = f.read()
-                a = a.replace("{app}", output_dir)
-                # Set all external compressor threads to 100%
-                a = re.sub(r"-t\d+p", "-t100p", a)
-                a = re.sub(r":t\d+p", ":t100p", a)
-                a = re.sub(r"-t[1-9]\b", f"-t{cores}", a)
-                if "[FreeArc]" not in a:
-                    a = f"[FreeArc]\nthreads = {cores}\n\n" + a
+                optimized = optimize_arc_ini(a, output_dir, cores)
                 with open(p, "w", encoding="latin1") as f:
-                    f.write(a)
+                    f.write(optimized)
             except Exception:
                 pass
 
@@ -146,7 +190,7 @@ def extract_archive(setup_exe, archive_file, output_dir):
             print("[!] Error: unarc.dll was not found inside the installer.")
             return False
 
-        # Step 2: Configure decompression paths & apply hardware maximum tuning
+        # Step 2: Configure decompression paths & apply MAXIMUM tuning to all settings
         optimize_configs(toolchain_dir, output_dir, cores)
 
         # Step 3: Patch binaries from Global\ to Local\ IPC (bypasses Administrator requirement)
@@ -164,7 +208,7 @@ def extract_archive(setup_exe, archive_file, output_dir):
                     pass
 
         # Step 4: Decompress with real-time CMD progress
-        print("[*] Extracting files (Multithreaded Acceleration Active)...\n", flush=True)
+        print("[*] Extracting files (Max Hardware Acceleration Active)...\n", flush=True)
         os.environ["PATH"] = toolchain_dir + ";" + os.environ.get("PATH", "")
         os.chdir(toolchain_dir)
 
