@@ -1,12 +1,12 @@
 # Repack Archive Extractor (FitGirl / DODI)
 
-A lightweight utility to extract selective and optional archives (`.bin` / `.doi` files) directly from **FitGirl** and **DODI** repacks without downloading or installing the full base game.
+A lightweight tool with real-time UI progress tracking to extract selective and optional archives (`.bin` / `.doi` files) directly from **FitGirl** and **DODI** repacks without downloading or installing the full 30–70 GB base game.
 
 ---
 
 ## 🌟 Why Use This?
 
-Repack installers usually lock components and force you to download the entire base game (often 30–70 GB) even if you only want:
+Repack installers usually lock components and force you to download the entire base game even if you only want:
 * 🎵 Soundtracks (MP3 / FLAC)
 * 🎨 Digital Artbooks (CBZ / PDF)
 * 📖 Digital Comics & Strategy Guides (CBR / PDF)
@@ -18,11 +18,12 @@ This tool extracts the internal FreeArc and pre-compression codec plugins direct
 
 ## ✨ Features
 
-* **Drag & Drop Support:** Drag any `.bin` or `.doi` file onto `Drag_Drop_Extractor.bat` to unpack instantly.
-* **Graphical User Interface (GUI):** Double-click `repack_extractor.py` or the batch file to open an intuitive GUI with file browsing and real-time logs.
+* **Visual Progress Bar & Percentage:** Real-time percentage display (`0%` → `100%`) with megabytes processed indicator.
+* **Live File Stream:** Displays the exact file currently being unpacked in real time.
+* **Drag & Drop Support:** Drag any `.bin` or `.doi` file onto `Extract_BIN_Drag_Drop.bat` to unpack immediately.
+* **Clean Graphical User Interface (GUI):** Run without arguments to launch the interactive window with file browsing and output folder opening.
 * **No Administrator Rights Required:** Automatically patches IPC memory mappings in memory from `Global\` to `Local\`, preventing permission hangs without needing UAC elevation.
-* **FitGirl & DODI Compatibility:** Supports both `.bin` and `.doi` archive containers.
-* **Selective Extraction:** Only extracts the archive you select—never forces base game data.
+* **FitGirl & DODI Compatibility:** Supports both `.bin` and `.doi` archive formats.
 
 ---
 
@@ -42,30 +43,20 @@ This tool extracts the internal FreeArc and pre-compression codec plugins direct
 ## 🚀 How to Use
 
 ### Method 1: Drag & Drop (Batch File)
-1. Place `Drag_Drop_Extractor.bat` and `repack_extractor.py` in the same directory.
-2. Drag any `.bin` or `.doi` archive and drop it directly onto `Drag_Drop_Extractor.bat`.
-3. If `setup.exe` is in the same folder, extraction begins immediately into a `<ArchiveName>_Extracted` folder.
+1. Keep `Extract_BIN_Drag_Drop.bat` and `extract_fitgirl_bin.py` in the same directory.
+2. Drag any `.bin` or `.doi` archive and drop it directly onto `Extract_BIN_Drag_Drop.bat`.
+3. The extraction window opens, displays the live percentage progress bar, streams each file name, and extracts your content into `<ArchiveName>_Extracted`.
 
 ### Method 2: Graphical User Interface (GUI)
-1. Double-click `repack_extractor.py` (or `Drag_Drop_Extractor.bat` without dropping a file).
-2. Select your archive file (`.bin` or `.doi`).
-3. Select the repack's `setup.exe`.
-4. Choose an output directory and click **▶ Extract Archive**.
+1. Double-click `extract_fitgirl_bin.py` (or `Extract_BIN_Drag_Drop.bat` without dropping a file).
+2. Click **Browse** to select your archive file (`.bin` or `.doi`).
+3. Click **Browse** to select the repack's `setup.exe` (auto-detected if in the same folder).
+4. Choose an output directory and click **▶ Start Extraction**.
 
 ### Method 3: Command Line (CLI)
 ```powershell
-py repack_extractor.py "<path_to_setup.exe>" "<path_to_archive.bin>" "<output_directory>"
+py extract_fitgirl_bin.py "<path_to_setup.exe>" "<path_to_archive.bin>" "<output_directory>"
 ```
-
----
-
-## ⚙️ How It Works Under the Hood
-
-1. **Toolchain Extraction:** Uses `innoextract` to unpack `unarc.dll`, `arc.ini`, `CLS.ini`, and the helper codecs (`cls-magic2`, `cls-srep`, `mpz`, `rzw`, `oodle`, etc.) embedded inside `setup.exe`.
-2. **Blueprint Customization:** Updates `{app}` path references in `arc.ini` and `CLS.ini` to point to your chosen output folder.
-3. **IPC Namespace Patching:** Scans codec binaries for `Global\` kernel shared memory namespaces and rewrites them to `Local\`, allowing the extraction subroutines to run under standard user permissions.
-4. **Direct Invocation:** Binds to `unarc.dll` via Python's `ctypes` and calls `FreeArcExtract()` with your target archive parameters.
-5. **Cleanup:** Automatically purges temporary codec files once extraction concludes.
 
 ---
 
