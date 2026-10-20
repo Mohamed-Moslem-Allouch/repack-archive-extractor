@@ -1,6 +1,6 @@
 # Repack Archive Extractor (FitGirl / DODI)
 
-A lightweight tool with real-time UI progress tracking to extract selective and optional archives (`.bin` / `.doi` files) directly from **FitGirl** and **DODI** repacks without downloading or installing the full 30–70 GB base game.
+A lightweight command-line tool with a live console progress bar to extract selective and optional archives (`.bin` / `.doi` files) directly from **FitGirl** and **DODI** repacks without downloading or installing the full 30–70 GB base game.
 
 ---
 
@@ -18,12 +18,17 @@ This tool extracts the internal FreeArc and pre-compression codec plugins direct
 
 ## ✨ Features
 
-* **Visual Progress Bar & Percentage:** Real-time percentage display (`0%` → `100%`) with megabytes processed indicator.
-* **Live File Stream:** Displays the exact file currently being unpacked in real time.
-* **Drag & Drop Support:** Drag any `.bin` or `.doi` file onto `Extract_BIN_Drag_Drop.bat` to unpack immediately.
-* **Clean Graphical User Interface (GUI):** Run without arguments to launch the interactive window with file browsing and output folder opening.
+* **Pure Command Prompt (CMD):** No pop-up windows—runs directly inside your clean terminal.
+* **Live Console Progress Bar:** Shows real-time progress:
+  ```text
+  [ 45%] -> Soundtracks/Track01.mp3
+  [ 48%] -> Soundtracks/Track02.mp3
+  [████████████████░░░░░░░░]  52% (120 MB / 228 MB)
+  ```
+* **Real-Time File Stream:** Prints each individual file as it is decoded to disk.
+* **Drag & Drop:** Simply drag any `.bin` or `.doi` file onto `Extract_BIN_Drag_Drop.bat`.
 * **No Administrator Rights Required:** Automatically patches IPC memory mappings in memory from `Global\` to `Local\`, preventing permission hangs without needing UAC elevation.
-* **FitGirl & DODI Compatibility:** Supports both `.bin` and `.doi` archive formats.
+* **FitGirl & DODI Compatibility:** Works with both `.bin` and `.doi` formats.
 
 ---
 
@@ -44,16 +49,10 @@ This tool extracts the internal FreeArc and pre-compression codec plugins direct
 
 ### Method 1: Drag & Drop (Batch File)
 1. Keep `Extract_BIN_Drag_Drop.bat` and `extract_fitgirl_bin.py` in the same directory.
-2. Drag any `.bin` or `.doi` archive and drop it directly onto `Extract_BIN_Drag_Drop.bat`.
-3. The extraction window opens, displays the live percentage progress bar, streams each file name, and extracts your content into `<ArchiveName>_Extracted`.
+2. Drag any `.bin` or `.doi` file and drop it directly onto `Extract_BIN_Drag_Drop.bat`.
+3. The CMD window opens, displays the live percentage progress bar, streams each file name, and extracts your content into `<ArchiveName>_Extracted`.
 
-### Method 2: Graphical User Interface (GUI)
-1. Double-click `extract_fitgirl_bin.py` (or `Extract_BIN_Drag_Drop.bat` without dropping a file).
-2. Click **Browse** to select your archive file (`.bin` or `.doi`).
-3. Click **Browse** to select the repack's `setup.exe` (auto-detected if in the same folder).
-4. Choose an output directory and click **▶ Start Extraction**.
-
-### Method 3: Command Line (CLI)
+### Method 2: Command Line (CLI)
 ```powershell
 py extract_fitgirl_bin.py "<path_to_setup.exe>" "<path_to_archive.bin>" "<output_directory>"
 ```
