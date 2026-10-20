@@ -7,7 +7,14 @@ import subprocess
 import tempfile
 import re
 
-# 1. 32-bit Architecture Guard
+# 1. Console Encoding Guard
+# Prevents charmap UnicodeEncodeErrors in standard Windows CMD / PowerShell
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+# 2. 32-bit Architecture Guard
 # unarc.dll is a 32-bit native library; if running on 64-bit Python, auto-delegate to 32-bit
 if sys.maxsize > 2**32:
     py_bin = shutil.which("py")
@@ -19,7 +26,7 @@ if sys.maxsize > 2**32:
         except Exception:
             pass
 
-# 2. Maximum CPU & Threading Priority
+# 3. Maximum CPU & Threading Priority
 try:
     # Set Windows Process Priority to HIGH_PRIORITY_CLASS (0x00000080)
     # Child processes (cls-lolz_x64, cls-srep_x64, xtool, etc.) inherit this priority
@@ -41,12 +48,7 @@ def find_innoextract():
 
 def draw_bar(percent, width=28):
     filled = int(width * percent / 100)
-    return "█" * filled + "░" * (width - filled)
-
-def format_bytes(b):
-    if b >= 1024 * 1024 * 1024:
-        return f"{b / (1024**3):.2f} GB"
-    return f"{b / (1024**2):.1f} MB"
+    return "=" * filled + "-" * (width - filled)
 
 def optimize_configs(toolchain_dir, output_dir, cores):
     """
@@ -179,34 +181,34 @@ def extract_archive(setup_exe, archive_file, output_dir):
         }
 
         def unarc_callback(what, int1, int2, str_arg):
-            if what == b"total":
-                if int1 > 0:
-                    stats["total_mb"] = int1
-            elif what == b"read":
-                stats["read_mb"] = int1
-                tot = stats["total_mb"]
-                if int2 > 0:
-                    tot = int2
-                    stats["total_mb"] = tot
-                pct = min(100, int((int1 / max(1, tot)) * 100))
-                stats["percent"] = pct
-                bar = draw_bar(pct, 26)
-                sys.stdout.write(f"\r  [{bar}] {pct:3d}% ({int1} MB / {tot} MB)")
-                sys.stdout.flush()
-            elif what == b"filename":
-                fname = str_arg.decode("latin1", "ignore").strip()
-                if fname:
-                    stats["current_file"] = fname
-                    stats["file_count"] += 1
-                    bar = draw_bar(stats["percent"], 26)
-                    # Clear progress line, print the file, then re-render bar
-                    sys.stdout.write(f"\r{' ' * 78}\r")
-                    print(f"  [{stats['percent']:3d}%] -> {fname}")
-                    sys.stdout.write(f"  [{bar}] {stats['percent']:3d}% ({stats['read_mb']} MB / {stats['total_mb']} MB)")
+            try:
+                if what == b"total":
+                    if int1 > 0:
+                        stats["total_mb"] = int1
+                elif what == b"read":
+                    stats["read_mb"] = int1
+                    tot = max(1, stats["total_mb"])
+                    pct = min(100, int((int1 / tot) * 100))
+                    stats["percent"] = pct
+                    bar = draw_bar(pct, 26)
+                    sys.stdout.write(f"\r  [{bar}] {pct:3d}% ({int1} MB / {tot} MB)")
                     sys.stdout.flush()
-            elif what == b"error":
-                err = str_arg.decode("latin1", "ignore").strip()
-                print(f"\n  [!] Extraction Error: {err}")
+                elif what == b"filename":
+                    fname = str_arg.decode("latin1", "ignore").strip()
+                    if fname:
+                        stats["current_file"] = fname
+                        stats["file_count"] += 1
+                        bar = draw_bar(stats["percent"], 26)
+                        # Clear progress line, print the file, then re-render bar
+                        sys.stdout.write(f"\r{' ' * 78}\r")
+                        print(f"  [{stats['percent']:3d}%] -> {fname}")
+                        sys.stdout.write(f"  [{bar}] {stats['percent']:3d}% ({stats['read_mb']} MB / {stats['total_mb']} MB)")
+                        sys.stdout.flush()
+                elif what == b"error":
+                    err = str_arg.decode("latin1", "ignore").strip()
+                    print(f"\n  [!] Extraction Error: {err}")
+            except Exception:
+                pass
             return 0
 
         cb = CALLBACK_TYPE(unarc_callback)
